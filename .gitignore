@@ -1,0 +1,10 @@
+node_modules
+logs
+tests
+docs
+dist
+build
+demo
+.vscode
+
+package-lock.json
