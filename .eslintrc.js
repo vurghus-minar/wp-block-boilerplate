@@ -30,7 +30,7 @@ module.exports = {
         }
     },
     "rules": {
-        "no-undef": "none",
+        "no-undef": "warn",
         "indent": [
             "error",
             "4"

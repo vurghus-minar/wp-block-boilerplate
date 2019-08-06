@@ -1,8 +1,6 @@
 # WP Block Boilerplate
 
-This boilerplate is inspired by a combination of [create-guten-block](https://github.com/ahmadawais/create-guten-block), [WordPress/Gutenberg with blocks](https://github.com/WordPress/gutenberg-examples) and [book-review-block](https://github.com/donnapep/book-review-block).
-
-Uses webpack 4.x to generate a complete starter plugin.
+Uses webpack 4.x to generate a complete WordPress block starter plugin.
 
 ## Installation
 

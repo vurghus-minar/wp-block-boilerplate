@@ -3,48 +3,39 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const FixStyleOnlyEntriesPlugin = require("webpack-fix-style-only-entries");
-const CopyPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
-
-// Extract multiple stylesheet using 'mini-css-extract-plugin'
-function recursiveIssuer(m) {
-	if (m.issuer) {
-	  return recursiveIssuer(m.issuer);
-	} else if (m.name) {
-	  return m.name;
-	} else {
-	  return false;
-	}
-}
+const externals = require('./externals');
+const helper = require('./helper');
 
 const webpackConfig = {
 	mode: NODE_ENV,
 	entry: {
-		script: path.resolve(__dirname, 'src/index.jsx'),
+		script: path.resolve(__dirname, 'src/index.js'),
 		style: path.resolve(__dirname, 'src/style.scss'),
 		editor: path.resolve(__dirname, 'src/editor.scss'),
 	},
 	output: {
-		filename: '[name].js',
+		filename: 'assets/js/[name].js',
 		path: path.resolve(__dirname, 'dist/wp-block-plugin'),
 	},
+	externals,
 	optimization: {
 		splitChunks: {
 			cacheGroups: {
 				styleCSS: {
 					name: 'style',
 					test: (m, c, entry = 'style') =>
-					m.constructor.name === 'CssModule' && recursiveIssuer(m) === entry,
+					m.constructor.name === 'CssModule' && helper.recursiveIssuer(m) === entry,
 					chunks: 'all',
 					enforce: true,
 				},
 				editorCSS: {
 					name: 'editor',
 					test: (m, c, entry = 'editor') =>
-					m.constructor.name === 'CssModule' && recursiveIssuer(m) === entry,
+					m.constructor.name === 'CssModule' && helper.recursiveIssuer(m) === entry,
 					chunks: 'all',
 					enforce: true,
 				},
@@ -54,7 +45,7 @@ const webpackConfig = {
 	module: {
 		rules: [
 			{
-				test: /\.jsx$/,
+				test: /\.js$/,
 				exclude: /node_modules/,
 				use: 'babel-loader',
 			},
@@ -79,19 +70,33 @@ const webpackConfig = {
 	plugins: [
 		// clean build dir before every build
 		new CleanWebpackPlugin({
+			//before every build, delete dist files
+			cleanOnceBeforeBuildPatterns: [path.resolve(__dirname,'dist/*')],
 			// after each build clean ghost stylesheet file 
-			cleanAfterEveryBuildPatterns: [path.resolve(__dirname,'dist/wp-block-plugin/script.css')]
+			cleanAfterEveryBuildPatterns: [path.resolve(__dirname,'dist/wp-block-plugin/assets/css/script.css')]
 		}),
 		new MiniCssExtractPlugin({
-			filename: '[name].css',
+			filename: 'assets/css/[name].css',
 		}),
 		// fix for mini-css-extract-plugin as outlined here:
 		// https://github.com/webpack-contrib/mini-css-extract-plugin/issues/151
 		new FixStyleOnlyEntriesPlugin(),
-		new CopyPlugin([
-			{ from: path.resolve(__dirname, 'index.php'), to: path.resolve(__dirname,'dist/wp-block-plugin') },
-			{ from: path.resolve(__dirname, 'partials/*'), to: path.resolve(__dirname,'dist/wp-block-plugin') }
-		]),
+		{
+			apply: (compiler) => {
+			  compiler.hooks.afterEmit.tap('AfterEmitFunctions', (compilation) => {
+				helper.copyFileSync([
+						'./plugin_src/index.php',
+						'./plugin_src/plugin.php',
+						'./plugin_src/README.txt',
+						'./plugin_src/LICENSE'
+					],
+					'./dist/wp-block-plugin'
+				);
+				helper.copyFolderRecursiveSync('./plugin_src/partials', './dist/wp-block-plugin');
+				helper.copyFolderRecursiveSync('./plugin_src/languages', './dist/wp-block-plugin');
+			  });
+			}
+		}
 	],
 };
 
